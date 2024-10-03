@@ -2,16 +2,14 @@
     <form id="signup">
         <div>
             <pre class="mb-3">
-        <!-- {{ JSON.stringify({ formData }, null, 2) }} -->
+        {{ JSON.stringify({ errors }, null, 2) }}
         </pre>
         </div>
-        <div class="mb-3">
-            <label for="exampleInputName" class="form-label">Name</label>
-            <input type="email" class="form-control" id="exampleInputName" aria-describedby="emailHelp"
-                v-model="formData.name">
-            <div id="nameError" class="text-danger" v-if="validationError.name" v-for="error in errors.name">{{ error }}
-            </div>
-            <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+        <div class="alert alert-danger" v-if="errors.length > 0">
+            <span v-for="error in errors">{{ error }}</span>
+        </div>
+        <div class="alert alert-success" v-if="message">
+            {{ message }}
         </div>
         <div class="mb-3">
             <label for="exampleInputEmail1" class="form-label">Email address</label>
@@ -21,12 +19,7 @@
             </div>
             <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
         </div>
-        <div class="mb-3">
-            <label for="exampleInputphone" class="form-label">Phone</label>
-            <input type="text" class="form-control" id="exampleInputPhone" v-model="formData.phone">
-            <div id="phoneError" class="text-danger" v-if="validationError.phone" v-for="error in errors.phone">{{ error }}
-            </div>
-        </div>
+        
         <div class="mb-3">
             <label for="exampleInputPassword1" class="form-label">Password</label>
             <input type="password" class="form-control" id="exampleInputPassword1" v-model="formData.password">
@@ -45,15 +38,15 @@
 import FormValidator from './../module/FormValidator.js';
 import { postFormData } from './../module/FormService.js';
 import axios from 'axios';
+import router from '@/router';
 export default {
     data() {
         return {
             errors: [],
-            formData: {
-                name: null,
+            message:null,
+            formData: {            
                 email: null,
-                password: null,
-                phone: null,
+                password: null,                
             }
         }
 
@@ -61,27 +54,14 @@ export default {
     computed: {
         validationError() {
             const fv = new FormValidator(this.formData);
-            fv.setValidationFields({
-                name: {
-                    required: true,
-                    minLength: 10,
-                    maxLength: 50,
-                },
+            fv.setValidationFields({            
                 email: {
                     required: true,
                     email: true,
                 },
                 password: {
-                    required: true,
-                    minLength: 10,
-                    maxLength: 50,
-                },
-                phone: {
-                    required: true,
-                    minLength: 10,
-                    maxLength: 10,
-                    number: true,
-                },
+                    required: true,                    
+                },                
             });
             fv.fvalidate();
             this.errors = fv.errors;
@@ -96,14 +76,16 @@ export default {
                     // this.formData.api_name = 'register';
                     const response = await axios.post('PHP_JWT', {                        
                         param: this.formData,                        
-                        api_name : 'register',
+                        api_name : 'login',
                     });
                     console.log(response);
-                    if(response.data.response.status == 200 ){
-                        alert(response.data.response.result);
+                    if(response.data.response && response.data.response.status == 200 ){
+                        this.message = response.data.response.result;
                         this.resetFormData();
+                        localStorage.setItem('authToken', response.data.response.result.token);
+                        router.push('/dashboard')
                     }else{
-                        alert(response.data.error.message);
+                        this.errors.push(response.data.error.message);
                     }
                 } catch (error) {
                     console.log(error);
@@ -112,11 +94,9 @@ export default {
         },
         resetFormData() {
             // Reset form data to initial state
-            this.formData = {
-                name: null,
+            this.formData = {                
                 email: null,
-                password: null,
-                phone: null,
+                password: null,                
             };
         },
 
